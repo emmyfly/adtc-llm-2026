@@ -7,23 +7,27 @@ prompt_path = os.path.join(os.path.dirname(__file__), "system_prompt.txt")
 with open(prompt_path, "r") as f:
     SYSTEM = f.read()
 
+history = [{"role": "system", "content": SYSTEM}]
+
 def ask(question):
+    history.append({"role": "user", "content": question})
+    
     response = requests.post(URL, json={
-        "messages": [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": question},
-        ],
+        "messages": history,
         "max_tokens": 256,
         "temperature": 0.7,
     })
     data = response.json()
-    return data["choices"][0]["message"]["content"]
+    answer = data["choices"][0]["message"]["content"]
+    
+    history.append({"role": "assistant", "content": answer})
+    return answer
 
 print("=" * 50)
 print("  AgriLM - Nigerian Agricultural Advisor")
 print("  Offline AI · No Internet Required")
 print("  Powered by Qwen2.5-3B on llama.cpp")
-print("  Type 'quit' to exit")
+print("  Type 'quit' to exit | 'clear' to reset")
 print("=" * 50)
 
 while True:
@@ -31,6 +35,10 @@ while True:
     if question.lower() in ["quit", "exit", "q"]:
         print("Goodbye! Happy farming!")
         break
+    if question.lower() == "clear":
+        history = [{"role": "system", "content": SYSTEM}]
+        print("Conversation cleared.")
+        continue
     if not question.strip():
         continue
     print("\nAgriLM:", ask(question))
