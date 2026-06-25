@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AgriLM - Nigerian Agricultural Advisor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: sans-serif; background: #f0f4f0; height: 100vh; display: flex; flex-direction: column; }
+.header { background: #1a5c2e; color: white; padding: 16px; text-align: center; }
+.header h1 { font-size: 22px; }
+.header p { font-size: 13px; opacity: 0.8; }
+.badge { display: inline-block; background: #e8f5e9; color: #1a5c2e; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-top: 4px; }
+.chat { flex: 1; overflow-y: auto; padding: 16px; }
+.msg { margin: 8px 0; padding: 12px 16px; border-radius: 12px; max-width: 85%; line-height: 1.5; white-space: pre-wrap; }
+.user { background: #1a5c2e; color: white; margin-left: auto; text-align: right; }
+.bot { background: white; border: 1px solid #ddd; }
+.input-area { padding: 12px; background: white; border-top: 1px solid #ddd; display: flex; gap: 8px; }
+.input-area input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+.input-area button { padding: 12px 16px; background: #1a5c2e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+.mic { background: #c62828; }
+.mic.recording { background: #ff5252; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>AgriLM</h1>
+<p>Offline AI Agricultural Advisor for Nigerian Farmers</p>
+<span class="badge">No Internet Required</span>
+<span class="badge">Voice Enabled</span>
+</div>
+<div class="chat" id="chat">
+<div class="msg bot">Welcome! Ask me anything about farming in Nigeria. You can type or click the microphone to speak. I work completely offline.</div>
+</div>
+<div class="input-area">
+<input type="text" id="input" placeholder="Ask about farming..." autofocus>
+<button class="mic" id="micBtn" onclick="toggleRecord()">Mic</button>
+<button onclick="send()">Ask</button>
+</div>
+<script>
+var chat = document.getElementById("chat");
+var input = document.getElementById("input");
+var micBtn = document.getElementById("micBtn");
+var history = [];
+var mediaRecorder = null;
+var audioChunks = [];
+var isRecording = false;
+
+input.addEventListener("keypress", function(e) { if(e.key==="Enter") send(); });
+
+function toggleRecord() {
+    if (isRecording) { stopRecord(); }
+    else { startRecord(); }
+}
+
+function startRecord() {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = function(e) { audioChunks.push(e.data); };
+        mediaRecorder.onstop = function() {
+            var blob = new Blob(audioChunks, { type: "audio/wav" });
+            sendAudio(blob);
+            stream.getTracks().forEach(function(t) { t.stop(); });
+        };
+        mediaRecorder.start();
+        isRecording = true;
+        micBtn.classList.add("recording");
+        micBtn.textContent = "Stop";
+    });
+}
+
+function stopRecord() {
+    if (mediaRecorder) { mediaRecorder.stop(); }
+    isRecording = false;
+    micBtn.classList.remove("recording");
+    micBtn.textContent = "Mic";
+}
+
+function sendAudio(blob) {
+    chat.innerHTML += "<div class='msg user'>[ Voice message - transcribing... ]</div>";
+    chat.scrollTop = chat.scrollHeight;
+    var formData = new FormData();
+    formData.append("audio", blob, "recording.wav");
+    fetch("/transcribe", { method: "POST", body: formData }).then(function(r) {
+        return r.json();
+    }).then(function(data) {
+        var last = chat.querySelectorAll(".user");
+        last[last.length-1].textContent = data.text;
+        input.value = data.text;
+        send();
+    }).catch(function(e) {
+        chat.innerHTML += "<div class='msg bot'>Could not transcribe audio. Try typing instead.</div>";
+    });
+}
+
+function send() {
+    var q = input.value.trim();
+    if(!q) return;
+    input.value = "";
+    chat.innerHTML += "<div class='msg user'>" + q + "</div>";
+    chat.innerHTML += "<div class='msg bot' id='loading'>Thinking...</div>";
+    chat.scrollTop = chat.scrollHeight;
+    fetch("/ask", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({question: q, history: history})
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        history = data.history;
+        document.getElementById("loading").remove();
+        chat.innerHTML += "<div class='msg bot'>" + data.answer + "</div>";
+        chat.scrollTop = chat.scrollHeight;
+    }).catch(function(e) {
+        document.getElementById("loading").remove();
+        chat.innerHTML += "<div class='msg bot'>Error. Make sure llama-server is running.</div>";
+    });
+}
+</script>
+</body>
+</html>
