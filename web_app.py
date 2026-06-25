@@ -120,6 +120,6 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
-print("AgriLM Web UI running at http://localhost:5000")
+print("AgriLM Web UI running at http://localhost:5001")
 print("Make sure llama-server is running on port 8080")
-HTTPServer(('', 5000), Handler).serve_forever()
+HTTPServer(('', 5001), Handler).serve_forever()
