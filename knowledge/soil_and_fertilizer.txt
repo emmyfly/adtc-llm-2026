@@ -1,0 +1,17 @@
+NIGERIAN SOIL ZONES:
+- Northern Guinea Savanna: ferruginous soils, sandy loam, low organic matter. Need nitrogen and phosphorus.
+- Southern Guinea Savanna: transition soils, moderate fertility. Good for yam and maize.
+- Derived Savanna: degraded forest soils, need organic matter replenishment.
+- Rainforest zone: ferralitic soils, acidic, high iron/aluminum. Good for tree crops.
+- Fadama: alluvial flood plains, very fertile, suitable for dry season farming with irrigation.
+
+COMMON FERTILIZERS IN NIGERIA:
+- NPK 15-15-15: general purpose, 4-6 bags per hectare for most crops. Cost ~N18,000 per 50kg bag.
+- Urea (46-0-0): nitrogen top dressing, 2-3 bags per hectare. Apply at 4-6 weeks after planting.
+- SSP (Single Super Phosphate): phosphorus source, good for legumes.
+- Organic: poultry manure (richest), cow dung, compost. Apply 5-10 tonnes per hectare.
+- Green manure: plant mucuna or centrosema before main crop, plough in.
+
+LIMING: Southern soils often acidic (pH 4.5-5.5). Apply agricultural lime at 1-2 tonnes per hectare to raise pH. Particularly important for maize and vegetables.
+
+SOIL TESTING: Available through state Agricultural Development Programme (ADP) offices, IITA Ibadan, and university soil labs. Cost N5,000-15,000 per sample.

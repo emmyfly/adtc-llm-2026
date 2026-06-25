@@ -1,5 +1,6 @@
 import requests
 import os
+from rag import get_context
 
 URL = "http://localhost:8080/v1/chat/completions"
 
@@ -10,7 +11,13 @@ with open(prompt_path, "r") as f:
 history = [{"role": "system", "content": SYSTEM}]
 
 def ask(question):
-    history.append({"role": "user", "content": question})
+    context = get_context(question)
+    if context:
+        enriched = context + "\n\n" + question
+    else:
+        enriched = question
+    
+    history.append({"role": "user", "content": enriched})
     
     response = requests.post(URL, json={
         "messages": history,
@@ -26,7 +33,7 @@ def ask(question):
 print("=" * 50)
 print("  AgriLM - Nigerian Agricultural Advisor")
 print("  Offline AI · No Internet Required")
-print("  Powered by Qwen2.5-3B on llama.cpp")
+print("  Powered by Qwen2.5-3B + Nigerian Agri Knowledge Base")
 print("  Type 'quit' to exit | 'clear' to reset")
 print("=" * 50)
 
