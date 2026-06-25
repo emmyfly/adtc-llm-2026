@@ -1,5 +1,6 @@
 import requests
 import os
+import re
 from rag import get_context
 
 URL = "http://localhost:8080/v1/chat/completions"
@@ -9,6 +10,15 @@ with open(prompt_path, "r") as f:
     SYSTEM = f.read()
 
 history = [{"role": "system", "content": SYSTEM}]
+last_suggestions = []
+
+def extract_suggestions(answer):
+    suggestions = []
+    for line in answer.split("\n"):
+        match = re.match(r'>>\s*(\d+)\.\s*(.+)', line)
+        if match:
+            suggestions.append(match.group(2).strip())
+    return suggestions
 
 def ask(question):
     context = get_context(question)
@@ -35,6 +45,7 @@ print("  AgriLM - Nigerian Agricultural Advisor")
 print("  Offline AI · No Internet Required")
 print("  Powered by Qwen2.5-3B + Nigerian Agri Knowledge Base")
 print("  Type 'quit' to exit | 'clear' to reset")
+print("  Type a number to select a suggested question")
 print("=" * 50)
 
 while True:
@@ -44,8 +55,21 @@ while True:
         break
     if question.lower() == "clear":
         history = [{"role": "system", "content": SYSTEM}]
+        last_suggestions = []
         print("Conversation cleared.")
         continue
     if not question.strip():
         continue
-    print("\nAgriLM:", ask(question))
+    
+    if question.strip().isdigit() and last_suggestions:
+        idx = int(question.strip()) - 1
+        if 0 <= idx < len(last_suggestions):
+            question = last_suggestions[idx]
+            print(f"  >> {question}")
+        else:
+            print("Invalid selection. Ask your question directly.")
+            continue
+    
+    answer = ask(question)
+    print("\nAgriLM:", answer)
+    last_suggestions = extract_suggestions(answer)
