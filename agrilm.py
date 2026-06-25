@@ -1,11 +1,11 @@
 import requests
+import os
 
 URL = "http://localhost:8080/v1/chat/completions"
-SYSTEM = """You are AgriLM, an agricultural advisor for Nigerian farmers.
-You give specific, practical advice about farming in Nigeria.
-You know about crops, soil types, seasons, pest control, fertilizers,
-and farming practices specific to different regions of Nigeria.
-Keep answers concise and actionable."""
+
+prompt_path = os.path.join(os.path.dirname(__file__), "system_prompt.txt")
+with open(prompt_path, "r") as f:
+    SYSTEM = f.read()
 
 def ask(question):
     response = requests.post(URL, json={
@@ -21,7 +21,8 @@ def ask(question):
 
 print("=" * 50)
 print("  AgriLM - Nigerian Agricultural Advisor")
-print("  Offline AI for Nigerian Farmers")
+print("  Offline AI · No Internet Required")
+print("  Powered by Qwen2.5-3B on llama.cpp")
 print("  Type 'quit' to exit")
 print("=" * 50)
 
