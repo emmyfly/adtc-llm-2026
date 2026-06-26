@@ -9,7 +9,7 @@ from rag import get_context
 
 LLM_URL = "http://localhost:8080/v1/chat/completions"
 WHISPER_CLI = os.path.expanduser("~/adtc-llm/whisper.cpp/build/bin/whisper-cli")
-WHISPER_MODEL = os.path.expanduser("~/adtc-llm/whisper.cpp/models/ggml-base.en.bin")
+WHISPER_MODEL = os.path.expanduser("~/adtc-llm/whisper.cpp/models/ggml-base.bin")
 
 prompt_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "system_prompt.txt")
 with open(prompt_path, "r") as f:
