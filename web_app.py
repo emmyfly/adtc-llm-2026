@@ -51,22 +51,42 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/transcribe":
             length = int(self.headers["Content-Length"])
             raw = self.rfile.read(length)
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                boundary = self.headers["Content-Type"].split("boundary=")[1]
-                parts = raw.split(("--" + boundary).encode())
-                for part in parts:
-                    if b"audio" in part and b"\r\n\r\n" in part:
-                        audio_data = part.split(b"\r\n\r\n", 1)[1].rstrip(b"\r\n--")
-                        tmp.write(audio_data)
-                        break
-                tmp_path = tmp.name
-
+            
+            boundary = self.headers["Content-Type"].split("boundary=")[1].encode()
+            parts = raw.split(b"--" + boundary)
+            audio_data = None
+            for part in parts:
+                if b"audio" in part and b"\r\n\r\n" in part:
+                    audio_data = part.split(b"\r\n\r\n", 1)[1].rstrip(b"\r\n--")
+                    break
+            
+            if not audio_data:
+                self.send_response(400)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"text": "No audio received"}).encode())
+                return
+            
+            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+                tmp.write(audio_data)
+                webm_path = tmp.name
+            
+            wav_path = webm_path.replace(".webm", ".wav")
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", webm_path, "-ar", "16000", "-ac", "1", wav_path],
+                capture_output=True, timeout=10
+            )
+            os.unlink(webm_path)
+            
             result = subprocess.run(
-                [WHISPER_CLI, "-m", WHISPER_MODEL, "-f", tmp_path, "--no-timestamps", "-t", "4"],
+                [WHISPER_CLI, "-m", WHISPER_MODEL, "-f", wav_path, "--no-timestamps", "-t", "4"],
                 capture_output=True, text=True, timeout=30
             )
-            os.unlink(tmp_path)
+            os.unlink(wav_path)
+            
             text = result.stdout.strip()
+            text = text.replace("[BLANK_AUDIO]", "").strip()
+            
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
