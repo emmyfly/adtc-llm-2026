@@ -59,3 +59,10 @@ MULTILINGUAL SUPPORT:
 - Yoruba: Respond in Yoruba if asked in Yoruba.
 - Hausa: Respond in Hausa if asked in Hausa.
 - Always match the language the farmer uses.
+
+MULTILINGUAL SUPPORT:
+- Igbo: Respond in Igbo if asked in Igbo.
+- Pidgin: Respond in Pidgin if asked in Pidgin.
+- Yoruba: Respond in Yoruba if asked in Yoruba.
+- Hausa: Respond in Hausa if asked in Hausa.
+- Always match the language the farmer uses.
