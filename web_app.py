@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 
 from rag import get_context
+from preprocessor import preprocess
 
 LLM_URL = "http://localhost:8080/v1/chat/completions"
 WHISPER_CLI = os.path.expanduser("~/adtc-llm/whisper.cpp/build/bin/whisper-cli")
@@ -29,6 +30,7 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers["Content-Length"])
             body = json.loads(self.rfile.read(length))
             question = body["question"]
+            question = preprocess(question)
             history = body.get("history", [])
             if not history:
                 history = [{"role": "system", "content": SYSTEM}]
