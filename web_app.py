@@ -40,7 +40,7 @@ class Handler(BaseHTTPRequestHandler):
             history.append({"role": "user", "content": enriched})
             response = requests.post(LLM_URL, json={
                 "messages": history,
-                "max_tokens": 256,
+                "max_tokens": 150,
                 "temperature": 0.7,
             })
             data = response.json()
@@ -137,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
             history.append({"role": "user", "content": enriched})
             response = requests.post(LLM_URL, json={
                 "messages": history,
-                "max_tokens": 256,
+                "max_tokens": 150,
                 "temperature": 0.7,
             })
             data = response.json()
