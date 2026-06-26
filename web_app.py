@@ -7,6 +7,7 @@ import tempfile
 
 from rag import get_context
 from preprocessor import preprocess
+from image_classifier import classify_image
 
 LLM_URL = "http://localhost:8080/v1/chat/completions"
 WHISPER_CLI = os.path.expanduser("~/adtc-llm/whisper.cpp/build/bin/whisper-cli")
@@ -93,6 +94,60 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({"text": text}).encode())
+        elif self.path == "/classify":
+            length = int(self.headers["Content-Length"])
+            raw = self.rfile.read(length)
+
+            boundary = self.headers["Content-Type"].split("boundary=")[1].encode()
+            parts = raw.split(b"--" + boundary)
+            image_data = None
+            question = ""
+            for part in parts:
+                if b"image" in part and b"\r\n\r\n" in part:
+                    image_data = part.split(b"\r\n\r\n", 1)[1].rstrip(b"\r\n--")
+                if b"question" in part and b"\r\n\r\n" in part:
+                    question = part.split(b"\r\n\r\n", 1)[1].rstrip(b"\r\n--").decode()
+
+            if not image_data:
+                self.send_response(400)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"text": "No image received"}).encode())
+                return
+
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                tmp.write(image_data)
+                img_path = tmp.name
+
+            label, confidence = classify_image(img_path)
+            os.unlink(img_path)
+
+            diagnosis = f"Plant disease identified: {label} (confidence: {confidence:.0%})"
+            if question:
+                question = preprocess(question)
+                enriched = f"{diagnosis}\n\nFarmer asks: {question}"
+            else:
+                enriched = f"{diagnosis}\nPlease advise the farmer on treatment and prevention."
+
+            context = get_context(label)
+            if context:
+                enriched = context + "\n\n" + enriched
+
+            history = [{"role": "system", "content": SYSTEM}]
+            history.append({"role": "user", "content": enriched})
+            response = requests.post(LLM_URL, json={
+                "messages": history,
+                "max_tokens": 256,
+                "temperature": 0.7,
+            })
+            data = response.json()
+            answer = data["choices"][0]["message"]["content"]
+
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"diagnosis": label, "confidence": f"{confidence:.0%}", "answer": answer}).encode())
+
 
     def log_message(self, format, *args):
         pass
