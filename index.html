@@ -14,12 +14,15 @@ body { font-family: sans-serif; background: #f0f4f0; height: 100vh; display: fle
 .msg { margin: 8px 0; padding: 12px 16px; border-radius: 12px; max-width: 85%; line-height: 1.5; white-space: pre-wrap; }
 .user { background: #1a5c2e; color: white; margin-left: auto; text-align: right; }
 .bot { background: white; border: 1px solid #ddd; }
+.diagnosis { background: #fff3e0; border: 1px solid #ffb74d; font-size: 13px; }
 .input-area { padding: 12px; background: white; border-top: 1px solid #ddd; display: flex; gap: 8px; }
 .input-area input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
 .input-area button { padding: 12px 16px; background: #1a5c2e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
 .mic { background: #c62828; }
 .mic.recording { background: #ff5252; animation: pulse 1s infinite; }
+.cam { background: #e65100; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.preview { max-width: 200px; border-radius: 8px; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -28,12 +31,14 @@ body { font-family: sans-serif; background: #f0f4f0; height: 100vh; display: fle
 <p>Offline AI Agricultural Advisor for Nigerian Farmers</p>
 <span class="badge">No Internet Required</span>
 <span class="badge">Voice Enabled</span>
+<span class="badge">Image ID</span>
 </div>
-<div class="chat" id="chat">
-<div class="msg bot">Welcome! Ask me anything about farming in Nigeria. You can type or click the microphone to speak. I work completely offline.</div>
+<div class="chat" id="chat"><div class="msg bot">Welcome! Ask me anything about farming in Nigeria. You can type, click the microphone to speak, or upload a photo of your crop leaf for disease diagnosis. I work completely offline.</div>
 </div>
+<input type="file" id="imgInput" accept="image/*" capture="environment" style="display:none">
 <div class="input-area">
 <input type="text" id="input" placeholder="Ask about farming..." autofocus>
+<button class="cam" onclick="document.getElementById('imgInput').click()">📷</button>
 <button class="mic" id="micBtn" onclick="toggleRecord()">Mic</button>
 <button onclick="send()">Ask</button>
 </div>
@@ -41,12 +46,20 @@ body { font-family: sans-serif; background: #f0f4f0; height: 100vh; display: fle
 var chat = document.getElementById("chat");
 var input = document.getElementById("input");
 var micBtn = document.getElementById("micBtn");
+var imgInput = document.getElementById("imgInput");
 var history = [];
 var mediaRecorder = null;
 var audioChunks = [];
 var isRecording = false;
 
 input.addEventListener("keypress", function(e) { if(e.key==="Enter") send(); });
+
+imgInput.addEventListener("change", function() {
+    if (this.files && this.files[0]) {
+        sendImage(this.files[0]);
+        this.value = "";
+    }
+});
 
 function toggleRecord() {
     if (isRecording) { stopRecord(); }
@@ -91,6 +104,40 @@ function sendAudio(blob) {
         send();
     }).catch(function(e) {
         chat.innerHTML += "<div class='msg bot'>Could not transcribe audio. Try typing instead.</div>";
+    });
+}
+
+function sendImage(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        chat.innerHTML += "<div class='msg user'><img src='" + e.target.result + "' class='preview'><br>Analyzing crop image...</div>";
+        chat.scrollTop = chat.scrollHeight;
+    };
+    reader.readAsDataURL(file);
+
+    chat.innerHTML += "<div class='msg bot' id='imgloading'>Identifying plant disease...</div>";
+    chat.scrollTop = chat.scrollHeight;
+
+    var formData = new FormData();
+    formData.append("image", file, "crop.jpg");
+    var q = input.value.trim();
+    if (q) {
+        formData.append("question", q);
+        input.value = "";
+    }
+
+    fetch("/classify", { method: "POST", body: formData }).then(function(r) {
+        return r.json();
+    }).then(function(data) {
+        var el = document.getElementById("imgloading");
+        if (el) el.remove();
+        chat.innerHTML += "<div class='msg diagnosis'>🔬 " + data.diagnosis + " (" + data.confidence + " confidence)</div>";
+        chat.innerHTML += "<div class='msg bot'>" + data.answer + "</div>";
+        chat.scrollTop = chat.scrollHeight;
+    }).catch(function(e) {
+        var el = document.getElementById("imgloading");
+        if (el) el.remove();
+        chat.innerHTML += "<div class='msg bot'>Could not analyze image. Try again.</div>";
     });
 }
 
